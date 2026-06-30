@@ -1,26 +1,142 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Editorial Color Palette */
+  --background: #F7F8F6;
+  --foreground: #171A18;
+  
+  --primary: #176B4D;
+  --primary-dark: #0F4D36;
+  --primary-foreground: #F7F8F6;
+  
+  --risk: #B5473C;
+  --risk-bg: rgba(181, 71, 60, 0.08);
+  
+  --warning: #B7791F;
+  --warning-bg: rgba(183, 121, 31, 0.08);
+  
+  --border: rgba(23, 26, 24, 0.09);
+  --border-strong: rgba(23, 26, 24, 0.18);
+  --muted: rgba(23, 26, 24, 0.55);
+  --subtle: rgba(23, 26, 24, 0.38);
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-risk: var(--risk);
+  --color-risk-bg: var(--risk-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ─── Scrollbars ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(23,26,24,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(23,26,24,0.28); }
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 600px; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.animate-fadeIn      { animation: fadeIn 0.35s ease forwards; }
+.animate-fadeUp      { animation: fadeUp 0.45s ease forwards; }
+.animate-scaleIn     { animation: scaleIn 0.25s ease forwards; }
+.animate-slideDown   { animation: slideDown 0.3s ease forwards; overflow: hidden; }
+.animate-pulse-dot   { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+/* Stagger children */
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ─── Utilities ─── */
+.border-editorial {
+  border: 1px solid var(--border);
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 8px 32px rgba(23, 26, 24, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ─── Focus rings ─── */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Selection ─── */
+::selection {
+  background-color: rgba(23, 107, 77, 0.18);
+  color: var(--foreground);
 }
