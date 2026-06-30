@@ -47,10 +47,13 @@ export default function AuditResultClient({ auditId, input, options, result, use
     setTimeout(() => setCopiedTab(null), 2000);
   };
 
-  // Helper to get color classes based on overall score
-  const getScoreColorClass = (score: number) => {
-    if (score <= 30) return "text-[#176B4D] bg-[#176B4D]/10 border-[#176B4D]/25";
-    if (score <= 60) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
+  // trustScore = 100 - overallScore (higher = better, more human/trustworthy)
+  const trustScore = 100 - result.overallScore;
+
+  // Color based on trustScore: high = green (good), low = red (bad)
+  const getScoreColorClass = (ts: number) => {
+    if (ts >= 70) return "text-[#176B4D] bg-[#176B4D]/10 border-[#176B4D]/25";
+    if (ts >= 40) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
     return "text-[#B5473C] bg-[#B5473C]/10 border-[#B5473C]/25";
   };
 
@@ -58,7 +61,11 @@ export default function AuditResultClient({ auditId, input, options, result, use
   const renderAnnotatedDraft = () => {
     const annotations = result.annotations;
     if (annotations.length === 0) {
-      return <div className="whitespace-pre-line text-[#171A18]/85 leading-relaxed">{input}</div>;
+      return (
+        <div className="whitespace-pre-line text-[#171A18]/85 leading-relaxed" suppressHydrationWarning>
+          {input}
+        </div>
+      );
     }
 
     // Sort annotations by their occurrence in the input text to replace sequentially
@@ -86,7 +93,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
 
       // Add clickable highlighted text snippet
       const isActive = activeAnnIndex === occ.idx;
-      
+
       // Select appropriate theme coloring
       const isCliché = occ.ann.problemCategory.toLowerCase().includes("cliché") || occ.ann.problemCategory.toLowerCase().includes("buzzword");
       const highlightBg = isCliché ? "bg-[#B5473C]/10 hover:bg-[#B5473C]/15" : "bg-[#B7791F]/10 hover:bg-[#B7791F]/15";
@@ -95,6 +102,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
       parts.push(
         <button
           key={`ann_${occ.idx}`}
+          type="button"
           onClick={() => setActiveAnnIndex(occ.idx)}
           className={`inline transition-all border-b-2 cursor-pointer rounded-sm px-1 py-0.5 font-sans font-medium text-left ${highlightBg} ${
             isActive ? `${highlightBorder} border-solid font-semibold ring-1 ring-offset-1 ring-current` : "border-dashed border-current"
@@ -111,13 +119,19 @@ export default function AuditResultClient({ auditId, input, options, result, use
     // Add trailing text
     if (lastIndex < input.length) {
       parts.push(
-        <span key={`text_end`} className="whitespace-pre-line text-[#171A18]/80 leading-relaxed font-sans">
+        <span key="text_end" className="whitespace-pre-line text-[#171A18]/80 leading-relaxed font-sans">
           {input.substring(lastIndex)}
         </span>
       );
     }
 
-    return parts;
+    // Wrap in a stable container to prevent browser extension DOM mutations
+    // from causing React removeChild errors during state transitions
+    return (
+      <div suppressHydrationWarning className="leading-relaxed">
+        {parts}
+      </div>
+    );
   };
 
   const handlePricingRedirect = (url: string) => {
@@ -170,10 +184,10 @@ export default function AuditResultClient({ auditId, input, options, result, use
           {/* Circular/Large Score Card */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#171A18]/50 font-sans">
-              {options.type === "article" ? "Article Trust Risk" : "AI Slop Score"}
+              Trust Score
             </span>
-            <div className={`flex items-baseline gap-1 font-mono px-4 py-2 border rounded-md text-3xl font-extrabold ${getScoreColorClass(result.overallScore)}`}>
-              {result.overallScore}
+            <div className={`flex items-baseline gap-1 font-mono px-4 py-2 border rounded-md text-3xl font-extrabold ${getScoreColorClass(trustScore)}`}>
+              {trustScore}
               <span className="text-sm font-normal text-current/60">/100</span>
             </div>
             <span className="text-[10px] text-[#171A18]/45 mt-1 block">

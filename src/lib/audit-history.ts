@@ -16,7 +16,8 @@ export function createAuditSummary(record: StoredAuditSummaryInput) {
 
   try {
     const result = JSON.parse(record.result) as { overallScore?: unknown; verdict?: unknown };
-    if (typeof result.overallScore === "number") score = result.overallScore;
+    // trustScore = 100 - overallScore (higher = better)
+    if (typeof result.overallScore === "number") score = 100 - result.overallScore;
     if (typeof result.verdict === "string" && result.verdict.trim()) verdict = result.verdict;
   } catch {}
 

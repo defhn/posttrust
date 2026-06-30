@@ -3,7 +3,7 @@ import { getCurrentUser, getUserCredits } from "@/lib/auth";
 import { runSlopAudit } from "@/lib/gemini";
 import { db } from "@/db";
 import { creditLedger, audits, voiceProfiles } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { auditRequestSchema } from "@/lib/audit-input";
 import { formatVoiceProfileForPrompt, voiceProfileSchema } from "@/lib/voice-profile";
 
@@ -61,52 +61,34 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Perform ledger check and write transaction
-    try {
-      await db.transaction(async (tx) => {
-        // Fetch current credits within transaction
-        const creditsResult = await tx
-          .select({
-            balance: sql<number>`COALESCE(SUM(${creditLedger.delta}), 0)::integer`,
-          })
-          .from(creditLedger)
-          .where(eq(creditLedger.userId, user.id));
-
-        const balance = creditsResult[0]?.balance ?? 0;
-
-        if (balance < 1) {
-          throw new Error("INSUFFICIENT_CREDITS");
-        }
-
-        // Deduct 1 credit
-        const ledgerId = `crd_${crypto.randomUUID().replace(/-/g, "")}`;
-        await tx.insert(creditLedger).values({
-          id: ledgerId,
-          userId: user.id,
-          delta: -1,
-          reason: "audit_cost",
-        });
-
-        // Insert audit log
-        await tx.insert(audits).values({
-          id: auditId,
-          userId: user.id,
-          input: content,
-          options: JSON.stringify(options),
-          result: JSON.stringify(auditResult),
-          creditCost: 1,
-        });
-      });
-    } catch (txError: unknown) {
-      const err = txError as Error;
-      if (err.message === "INSUFFICIENT_CREDITS") {
-        return NextResponse.json(
-          { error: "Insufficient credits. Please purchase more audits." },
-          { status: 402 }
-        );
-      }
-      throw txError;
+    // 4. Re-verify credits and write sequentially (neon-http does not support transactions)
+    // Re-check balance after Gemini call to guard against race
+    const finalBalance = await getUserCredits(user.id);
+    if (finalBalance < 1) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Please purchase more audits." },
+        { status: 402 }
+      );
     }
+
+    // Deduct 1 credit
+    const ledgerId = `crd_${crypto.randomUUID().replace(/-/g, "")}`;
+    await db.insert(creditLedger).values({
+      id: ledgerId,
+      userId: user.id,
+      delta: -1,
+      reason: "audit_cost",
+    });
+
+    // Insert audit record
+    await db.insert(audits).values({
+      id: auditId,
+      userId: user.id,
+      input: content,
+      options: JSON.stringify(options),
+      result: JSON.stringify(auditResult),
+      creditCost: 1,
+    });
 
     return NextResponse.json({ success: true, auditId });
   } catch (error) {

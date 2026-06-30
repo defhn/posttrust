@@ -118,7 +118,12 @@ export default function DemoAudit() {
       );
     }
 
-    return parts;
+    // Wrap in stable container to prevent browser extension DOM mutation errors
+    return (
+      <div suppressHydrationWarning className="leading-relaxed font-sans">
+        {parts}
+      </div>
+    );
   };
 
   return (
@@ -172,7 +177,7 @@ export default function DemoAudit() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-xs font-sans text-[#B5473C] bg-[#B5473C]/10 rounded px-2.5 py-1 w-fit font-medium">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                AI Slop Score: 78/100 (High Risk)
+                Trust Score: 22/100 (Low Trust)
               </div>
               <div className="font-sans leading-relaxed">
                 {renderAnnotatedText()}

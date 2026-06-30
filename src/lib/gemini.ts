@@ -139,7 +139,7 @@ CRITICAL: In the "annotations" array, the "originalTextSnippet" MUST be an EXACT
 
 JSON Schema format:
 {
-  "overallScore": number (0-100, where higher means MORE generic/AI-slop/less trust),
+  "overallScore": number (0-100 internal slop score; 0 = authentic/high-trust, 100 = pure AI cliché/no trust. The UI displays this as trustScore = 100 - overallScore, so calibrate accordingly),
   "confidence": "High" | "Medium" | "Low" (based on length and detail),
   "verdict": "One-sentence summary of the main trust risk in the text.",
   "positives": ["Good aspect 1", "Good aspect 2"],
