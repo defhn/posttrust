@@ -1,9 +1,18 @@
 import { SignIn } from "@clerk/nextjs";
+import AppShell from "@/components/app-shell";
 
 export default function SignInPage() {
   return (
-    <main className="min-h-screen bg-[#F7F8F6] flex items-center justify-center px-4 py-16">
-      <SignIn signUpUrl="/sign-up" fallbackRedirectUrl="/" />
-    </main>
+    <AppShell
+      user={null}
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Sign in" },
+      ]}
+    >
+      <div className="flex justify-center py-8">
+        <SignIn signUpUrl="/sign-up" fallbackRedirectUrl="/" />
+      </div>
+    </AppShell>
   );
 }

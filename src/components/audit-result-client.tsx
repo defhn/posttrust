@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   Shield, Check, Copy, HelpCircle, 
-  ChevronLeft, ArrowRight, CornerDownRight, FileText
+  ArrowRight, CornerDownRight, FileText
 } from "lucide-react";
 
 interface AuditResultProps {
@@ -39,6 +39,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
   const [rewriteTab, setRewriteTab] = useState<"conservative" | "authentic">("authentic");
   const [copiedTab, setCopiedTab] = useState<"conservative" | "authentic" | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const auditLabel = options.type === "article" ? "Article" : "Post";
 
   // Copy text to clipboard
   const handleCopy = (text: string, type: "conservative" | "authentic") => {
@@ -264,39 +265,26 @@ export default function AuditResultClient({ auditId, input, options, result, use
   };
 
   return (
-    <div className="flex-1 bg-[#F7F8F6] min-h-screen pb-16">
-      
-      {/* Top Header Row */}
-      <header className="h-[60px] border-b border-[#171A18]/8 px-4 md:px-8 bg-white flex items-center justify-between z-40 sticky top-0">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-1 rounded-full hover:bg-[#171A18]/5 text-[#171A18]/70 hover:text-[#171A18] transition-all cursor-pointer"
-            title="Return to home"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <span className="h-4 w-px bg-[#171A18]/15" />
-          <span className="font-sans font-bold text-sm text-[#171A18]">Audit Results</span>
-          <span className="text-[10px] font-mono text-[#171A18]/40 select-all hidden sm:inline">#{auditId}</span>
+    <div className="space-y-8 font-sans">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#176B4D]">Audit Result</p>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#171A18]">{auditLabel} trust report</h1>
+          <p className="mt-2 text-xs text-[#171A18]/45 font-mono select-all">#{auditId}</p>
         </div>
-
-        <div className="flex items-center gap-4 text-xs font-bold">
+        <div className="flex items-center gap-3 text-xs font-bold">
           <span className="bg-[#176B4D]/10 text-[#176B4D] border border-[#176B4D]/25 px-2.5 py-1 rounded">
             {user.credits} audits left
           </span>
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="bg-[#176B4D] hover:bg-[#12533B] text-white px-4 py-2 rounded transition-colors font-sans flex items-center gap-1 cursor-pointer"
           >
-            Audit New {options.type === "article" ? "Article" : "Post"}
+            Audit New {auditLabel}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </header>
-
-      {/* Grid Dashboard */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8 font-sans">
+      </div>
         
         {/* Row 1: Overall Summary */}
         <section className="bg-white border-editorial rounded-lg p-6 grid grid-cols-1 md:grid-cols-4 gap-6 items-center shadow-2xs">
@@ -535,8 +523,6 @@ export default function AuditResultClient({ auditId, input, options, result, use
             )}
           </section>
         )}
-
-      </div>
     </div>
   );
 }

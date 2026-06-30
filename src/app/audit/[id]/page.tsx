@@ -3,6 +3,7 @@ import { getCurrentUser, getUserCredits } from "@/lib/auth";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import AppShell from "@/components/app-shell";
 import AuditResultClient from "@/components/audit-result-client";
 
 export const dynamic = "force-dynamic";
@@ -54,15 +55,27 @@ export default async function AuditResultPage({ params }: AuditPageProps) {
     id: user.id,
     email: user.email,
     credits,
+    hasVoiceProfile: Boolean(user.voiceProfileEnabledAt),
+    hasBilling: Boolean(user.stripeCustomerId),
+    subscriptionStatus: user.subscriptionStatus,
   };
 
   return (
-    <AuditResultClient
-      auditId={audit.id}
-      input={audit.input}
-      options={optionsObj}
-      result={resultObj}
+    <AppShell
       user={clientUser}
-    />
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "History", href: "/history" },
+        { label: "Audit Result" },
+      ]}
+    >
+      <AuditResultClient
+        auditId={audit.id}
+        input={audit.input}
+        options={optionsObj}
+        result={resultObj}
+        user={clientUser}
+      />
+    </AppShell>
   );
 }

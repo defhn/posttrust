@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import type { VoiceProfile } from "@/lib/voice-profile";
 
@@ -47,22 +47,18 @@ export default function VoiceProfileClient({ enabled }: { enabled: boolean }) {
 
   if (!enabled) {
     return (
-      <main className="min-h-screen bg-[#F7F8F6] px-6 py-16">
         <div className="mx-auto max-w-2xl border border-[#171A18]/10 bg-white p-8">
           <p className="text-xs font-bold uppercase text-[#176B4D]">Voice Profile</p>
           <h1 className="mt-3 text-3xl font-bold">Make every rewrite sound like you</h1>
           <p className="mt-4 text-[#171A18]/65">The Voice Profile Pack unlocks one reusable profile built from 3-5 posts you wrote yourself.</p>
           <Link href="/#pricing" className="mt-6 inline-flex bg-[#176B4D] px-5 py-3 text-sm font-semibold text-white">View Voice Profile Pack</Link>
         </div>
-      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F8F6] px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#171A18]/60 hover:text-[#171A18]"><ArrowLeft className="h-4 w-4" />Back to audit</Link>
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div>
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section>
             <p className="text-xs font-bold uppercase text-[#176B4D]">Your writing samples</p>
             <h1 className="mt-2 text-3xl font-bold">Build your Voice Profile</h1>
@@ -91,14 +87,13 @@ export default function VoiceProfileClient({ enabled }: { enabled: boolean }) {
             {loading ? <Loader2 className="mt-6 h-5 w-5 animate-spin text-[#176B4D]" /> : profile ? (
               <div className="mt-5 space-y-5 text-sm">
                 <p className="leading-relaxed text-[#171A18]/70">{profile.summary}</p>
-                {[["Tone", profile.toneTraits], ["Rhythm", profile.rhythmRules], ["Evidence", profile.evidenceHabits], ["Structure", profile.structurePatterns], ["Avoid", profile.phrasesToAvoid]].map(([label, items]) => (
-                  <div key={label as string}><h3 className="font-semibold">{label as string}</h3><ul className="mt-2 space-y-1 text-[#171A18]/60">{(items as string[]).map((item) => <li key={item}>• {item}</li>)}</ul></div>
+                {[['Tone', profile.toneTraits], ['Rhythm', profile.rhythmRules], ['Evidence', profile.evidenceHabits], ['Structure', profile.structurePatterns], ['Avoid', profile.phrasesToAvoid]].map(([label, items]) => (
+                  <div key={label as string}><h3 className="font-semibold">{label as string}</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-[#171A18]/60">{(items as string[]).map((item) => <li key={item}>{item}</li>)}</ul></div>
                 ))}
               </div>
             ) : <p className="mt-4 text-sm text-[#171A18]/50">Your generated style rules will appear here.</p>}
           </aside>
         </div>
       </div>
-    </main>
   );
 }

@@ -91,13 +91,22 @@ export default function SiteHeader({ user, onSignIn }: SiteHeaderProps) {
               <UserButton />
             </>
           ) : (
-            <button
-              type="button"
-              onClick={onSignIn}
-              className="text-sm font-semibold text-[#176B4D] hover:text-[#0F4D36] transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Sign in
-            </button>
+            onSignIn ? (
+              <button
+                type="button"
+                onClick={onSignIn}
+                className="text-sm font-semibold text-[#176B4D] hover:text-[#0F4D36] transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Sign in
+              </button>
+            ) : (
+              <Link
+                href="/sign-in"
+                className="text-sm font-semibold text-[#176B4D] hover:text-[#0F4D36] transition-colors whitespace-nowrap"
+              >
+                Sign in
+              </Link>
+            )
           )}
         </div>
       </div>

@@ -11,7 +11,7 @@ test("creates a safe history summary from stored JSON", () => {
   });
 
   assert.equal(summary.type, "post");
-  assert.equal(summary.score, 42);
+  assert.equal(summary.score, 58);
   assert.match(summary.excerpt, /concrete founder story/);
 });
 

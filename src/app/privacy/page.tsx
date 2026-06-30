@@ -1,4 +1,4 @@
-import Link from "next/link";
+import AppShell from "@/components/app-shell";
 
 export const metadata = {
   title: "Privacy Policy | PostTrust",
@@ -6,12 +6,14 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#F7F8F6]">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
-        <Link href="/" className="text-sm font-semibold text-[#176B4D] hover:text-[#0F4D36]">
-          Back to PostTrust
-        </Link>
-
+    <AppShell
+      user={null}
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Privacy" },
+      ]}
+    >
+      <div className="max-w-3xl space-y-8">
         <div className="space-y-4">
           <p className="text-xs font-bold uppercase tracking-widest text-[#176B4D]">Privacy</p>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#171A18]">Privacy Policy</h1>
@@ -38,6 +40,6 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Loader2, CreditCard, ArrowRight } from "lucide-react";
+import AppShell from "@/components/app-shell";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -118,7 +119,14 @@ function SuccessContent() {
 
 export default function BillingSuccessPage() {
   return (
-    <div className="min-h-screen bg-[#F7F8F6] flex items-center justify-center px-4">
+    <AppShell
+      user={null}
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Billing" },
+      ]}
+    >
+      <div className="flex justify-center py-8">
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center text-center p-8 max-w-md bg-[#F7F8F6] border border-[#171A18]/10 rounded-lg shadow-sm">
           <Loader2 className="h-10 w-10 animate-spin text-[#176B4D] mb-4" />
@@ -127,6 +135,7 @@ export default function BillingSuccessPage() {
       }>
         <SuccessContent />
       </Suspense>
-    </div>
+      </div>
+    </AppShell>
   );
 }

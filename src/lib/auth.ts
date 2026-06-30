@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { users, sessions, creditLedger } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import * as crypto from "crypto";
-import { currentUser as getClerkUser } from "@clerk/nextjs/server";
+import { auth, currentUser as getClerkUser } from "@clerk/nextjs/server";
 
 const SESSION_COOKIE_NAME = "posttrust_session";
 
@@ -20,6 +20,12 @@ export function generateRandomToken(): string {
 // Sync and return the local user record for the current Clerk session.
 export async function getCurrentUser() {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return null;
+    }
+
     const clerkUser = await getClerkUser();
 
     if (!clerkUser) {
