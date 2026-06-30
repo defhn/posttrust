@@ -70,6 +70,14 @@ export async function POST(req: Request) {
     });
 
     if (!emailSent) {
+      if (process.env.NODE_ENV !== "production") {
+        return NextResponse.json({
+          success: true,
+          devMagicLink: magicLinkUrl,
+          warning: "Email delivery failed in development. Use the devMagicLink to continue testing.",
+        });
+      }
+
       return NextResponse.json(
         { error: "Failed to send login email. Please try again later." },
         { status: 500 }

@@ -17,11 +17,13 @@ export default function AuthModal({ isOpen, onClose, initialEmail = "", onSucces
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setErrorMsg(null);
       setIsSuccess(false);
+      setDevMagicLink(null);
     }
   }, [isOpen]);
 
@@ -54,6 +56,7 @@ export default function AuthModal({ isOpen, onClose, initialEmail = "", onSucces
         throw new Error(data.error || "Failed to send magic link. Please try again.");
       }
 
+      setDevMagicLink(typeof data.devMagicLink === "string" ? data.devMagicLink : null);
       setIsSuccess(true);
       setCountdown(60);
       if (onSuccess) onSuccess();
@@ -93,6 +96,17 @@ export default function AuthModal({ isOpen, onClose, initialEmail = "", onSucces
               Click the link in the email to verify and automatically proceed.
             </p>
             <div className="text-xs text-[#171A18]/50">
+              {devMagicLink && (
+                <div className="mb-4 rounded border border-[#176B4D]/20 bg-[#176B4D]/8 p-3 text-left text-[#171A18]/75">
+                  <p className="mb-2 font-semibold text-[#176B4D]">Development login link</p>
+                  <a
+                    href={devMagicLink}
+                    className="break-all text-[#176B4D] underline"
+                  >
+                    {devMagicLink}
+                  </a>
+                </div>
+              )}
               {countdown > 0 ? (
                 <span>Resend link in {countdown}s</span>
               ) : (
