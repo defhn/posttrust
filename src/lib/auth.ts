@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { users, sessions, creditLedger } from "@/db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import * as crypto from "crypto";
+import { currentUser as getClerkUser } from "@clerk/nextjs/server";
 
 const SESSION_COOKIE_NAME = "posttrust_session";
 
@@ -16,39 +17,50 @@ export function generateRandomToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-// Get the authenticated user based on request cookies
+// Sync and return the local user record for the current Clerk session.
 export async function getCurrentUser() {
   try {
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    const clerkUser = await getClerkUser();
 
-    if (!sessionToken) {
+    if (!clerkUser) {
       return null;
     }
 
-    const sessionHash = hashToken(sessionToken);
+    const email = clerkUser.primaryEmailAddress?.emailAddress?.toLowerCase();
+    if (!email) {
+      return null;
+    }
 
-    // Query session join user
-    const result = await db
-      .select({
-        user: users,
-        session: sessions,
-      })
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.id))
-      .where(
-        and(
-          eq(sessions.id, sessionHash),
-          gt(sessions.expiresAt, new Date())
-        )
-      )
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, clerkUser.id))
       .limit(1);
 
-    if (result.length === 0) {
-      return null;
+    if (existing.length > 0) {
+      return existing[0];
     }
 
-    return result[0].user;
+    await db.insert(users).values({
+      id: clerkUser.id,
+      email,
+    });
+
+    await db.insert(creditLedger).values({
+      id: `crd_${crypto.randomUUID().replace(/-/g, "")}`,
+      userId: clerkUser.id,
+      delta: 1,
+      reason: "free_credit",
+      stripeEventId: `clerk_signup_${clerkUser.id}`,
+    }).onConflictDoNothing();
+
+    const created = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, clerkUser.id))
+      .limit(1);
+
+    return created[0] ?? null;
   } catch (error) {
     console.error("Error in getCurrentUser:", error);
     return null;

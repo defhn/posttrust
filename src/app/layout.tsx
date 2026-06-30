@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://posttrust.io"),
@@ -27,15 +28,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body
-        className="antialiased min-h-screen bg-[#F7F8F6] text-[#171A18]"
-        style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
-      >
-        <main className="w-full flex flex-col min-h-screen">
-          {children}
-        </main>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+        <body
+          className="antialiased min-h-screen bg-[#F7F8F6] text-[#171A18]"
+          style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
+        >
+          <main className="w-full flex flex-col min-h-screen">
+            {children}
+          </main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

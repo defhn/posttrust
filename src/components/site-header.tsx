@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CreditCard, History, LogOut, Shield, SlidersHorizontal } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
+import { CreditCard, History, Shield, SlidersHorizontal } from "lucide-react";
 
 interface SiteHeaderUser {
   id: string;
@@ -20,13 +20,7 @@ interface SiteHeaderProps {
 }
 
 export default function SiteHeader({ user, onSignIn }: SiteHeaderProps) {
-  const router = useRouter();
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.refresh();
-  };
 
   const handleBillingPortal = async () => {
     setIsOpeningPortal(true);
@@ -94,15 +88,7 @@ export default function SiteHeader({ user, onSignIn }: SiteHeaderProps) {
               <span className="hidden xl:inline truncate max-w-[180px] text-xs text-[#171A18]/50 font-mono">
                 {user.email}
               </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-md text-[#171A18]/45 hover:text-[#B5473C] hover:bg-[#B5473C]/8 transition-colors cursor-pointer"
-                aria-label="Sign out"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+              <UserButton />
             </>
           ) : (
             <button

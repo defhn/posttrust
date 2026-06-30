@@ -2,15 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import AuthModal from "./auth-modal";
 import DemoAudit from "./demo-audit";
 import SiteFooter from "./site-footer";
 import SiteHeader from "./site-header";
 import { 
   FileText, Shield, Sparkles, CheckCircle, Zap, 
   ArrowRight, ChevronDown, AlertCircle, 
-  Loader2, LogOut, ChevronRight
+  Loader2, ChevronRight
 } from "lucide-react";
 
 interface User {
@@ -148,7 +146,6 @@ function LandingContent({ user }: LandingClientProps) {
   const [audience, setAudience] = useState("");
   const [goal, setGoal] = useState("Leads");
   const [tone, setTone] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditStep, setAuditStep] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -235,14 +232,14 @@ function LandingContent({ user }: LandingClientProps) {
     localStorage.setItem("posttrust_draft_goal", goal);
     localStorage.setItem("posttrust_draft_type", contentType);
     if (!user) {
-      setIsAuthModalOpen(true);
+      router.push("/sign-in");
       return;
     }
     executeAudit(content, { type: contentType, audience, goal, tone });
   };
 
   const handlePricingClick = (paymentUrl: string) => {
-    if (!user) { setIsAuthModalOpen(true); return; }
+    if (!user) { router.push("/sign-in"); return; }
     if (!isConfiguredPaymentLink(paymentUrl)) {
       setErrorMsg("Checkout is not configured yet. Add the real Stripe Payment Link URL to NEXT_PUBLIC_STRIPE_LINK_* first.");
       document.getElementById("audit-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -252,11 +249,6 @@ function LandingContent({ user }: LandingClientProps) {
     window.location.href = `${paymentUrl}${sep}client_reference_id=${user.id}`;
   };
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.refresh();
-  };
-
   const charCount = content.length;
   const maxCharacters = contentType === "article" ? 12000 : 3000;
   const isTooShort = charCount > 0 && charCount < 80;
@@ -264,48 +256,7 @@ function LandingContent({ user }: LandingClientProps) {
 
   return (
     <div className="min-h-screen bg-[#F7F8F6]">
-      <SiteHeader user={user} onSignIn={() => setIsAuthModalOpen(true)} />
-
-      {/* 鈹€鈹€ Sticky Navbar 鈹€鈹€ */}
-      <header className="hidden">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-7 h-7 rounded-md bg-[#176B4D] flex items-center justify-center">
-            <Shield className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-bold text-[#171A18] text-[15px] tracking-tight">PostTrust</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#171A18]/65">
-          <a href="#how-it-works" className="hover:text-[#171A18] transition-colors">How it works</a>
-          <a href="#pricing" className="hover:text-[#171A18] transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-[#171A18] transition-colors">FAQ</a>
-        </nav>
-
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              <span className="hidden sm:flex items-center gap-1.5 bg-[#176B4D]/10 text-[#176B4D] border border-[#176B4D]/20 text-xs font-bold px-2.5 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#176B4D] animate-pulse-dot" />
-                {user.credits} audits left
-              </span>
-              <span className="hidden lg:inline text-xs text-[#171A18]/50 font-mono">{user.email}</span>
-              <button
-                onClick={handleLogout}
-                className="text-[#171A18]/45 hover:text-[#B5473C] transition-colors cursor-pointer"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="text-sm font-semibold text-[#176B4D] hover:text-[#0F4D36] transition-colors cursor-pointer"
-            >
-              Sign in 鈫?            </button>
-          )}
-        </div>
-      </header>
+      <SiteHeader user={user} onSignIn={() => router.push("/sign-in")} />
 
       {/* 鈹€鈹€ Hero 鈹€鈹€ */}
       <section className="w-full pt-20 pb-16 text-center animate-fadeUp">
@@ -717,11 +668,6 @@ function LandingContent({ user }: LandingClientProps) {
 
       <SiteFooter />
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        initialEmail=""
-      />
     </div>
   );
 }
