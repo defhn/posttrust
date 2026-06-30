@@ -133,6 +133,8 @@ Provide two rewrites:
 - "conservative": Retains original structure but replaces clichés, flushes out empty language, and tempers fake-expert lecturing.
 - "authentic": Re-structures the post, highlights personal/consulting experiences as anchors, and uses bracketed placeholders like "[insert your team size here]" or "[insert metric here]" where the user should add their own facts. Never make up stories; ask the user to fill them in.
 
+CRITICAL FORMATTING RULE FOR REWRITES: Output PLAIN TEXT only. No markdown whatsoever. Do NOT use **bold**, *italic*, # headings, bullet dashes (- or *), or any other markdown syntax. Write as you would type a LinkedIn post: plain paragraphs, numbered lists like "1. Text", and standard line breaks only.
+
 Provide a list of "missingContextDetails" which are specific questions the user can answer to add evidence (e.g., "What specific software did you use?", "How many hours did this save?").
 
 CRITICAL: In the "annotations" array, the "originalTextSnippet" MUST be an EXACT, CASE-SENSITIVE substring of the original text. Do not modify capitalization, punctuation, or whitespace.
@@ -197,10 +199,25 @@ Perform the audit. Output ONLY valid JSON matching the format description. Do no
   });
 
   const responseText = result.response.text();
-  
+
+  // Strip any residual markdown formatting Gemini may include in rewrite strings
+  function stripMarkdown(text: string): string {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, "$1")   // **bold**
+      .replace(/\*(.+?)\*/g, "$1")       // *italic*
+      .replace(/^#{1,6}\s+/gm, "")       // # headings
+      .replace(/^[\-\*]\s+/gm, "• ")    // - bullet → • bullet
+      .replace(/`{1,3}([^`]+)`{1,3}/g, "$1") // `code`
+      .trim();
+  }
+
   try {
     const rawJson = JSON.parse(responseText);
-    return auditResultSchema.parse(rawJson);
+    const validated = auditResultSchema.parse(rawJson);
+    // Post-process rewrites to guarantee plain text
+    validated.rewrites.conservative = stripMarkdown(validated.rewrites.conservative);
+    validated.rewrites.authentic = stripMarkdown(validated.rewrites.authentic);
+    return validated;
   } catch (err) {
     console.error("Failed to parse or validate Gemini response JSON:", responseText, err);
     throw new Error("The AI response was not formatted correctly. Please try again.");

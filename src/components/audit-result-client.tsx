@@ -50,12 +50,26 @@ export default function AuditResultClient({ auditId, input, options, result, use
   // trustScore = 100 - overallScore (higher = better, more human/trustworthy)
   const trustScore = 100 - result.overallScore;
 
-  // Color based on trustScore: high = green (good), low = red (bad)
+  // Placeholder fill state for authentic rewrite: key = "ph_N", value = user's text
+  const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({});
+  const [copiedFinal, setCopiedFinal] = useState(false);
+
+  // Score color: <60 red, 60-79 yellow, 80-89 light green, 90+ deep green
   const getScoreColorClass = (ts: number) => {
-    if (ts >= 70) return "text-[#176B4D] bg-[#176B4D]/10 border-[#176B4D]/25";
-    if (ts >= 40) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
+    if (ts >= 90) return "text-[#176B4D] bg-[#176B4D]/15 border-[#176B4D]/35";
+    if (ts >= 80) return "text-[#2D8B5A] bg-[#2D8B5A]/10 border-[#2D8B5A]/25";
+    if (ts >= 60) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
     return "text-[#B5473C] bg-[#B5473C]/10 border-[#B5473C]/25";
   };
+
+  const getScoreTier = (ts: number) => {
+    if (ts >= 90) return { label: "Excellent", color: "text-[#176B4D]" };
+    if (ts >= 80) return { label: "Good", color: "text-[#2D8B5A]" };
+    if (ts >= 60) return { label: "Average", color: "text-[#B7791F]" };
+    return { label: "Needs Work", color: "text-[#B5473C]" };
+  };
+
+  const scoreTier = getScoreTier(trustScore);
 
   // Helper to parse original draft and render it with interactive highlighted blocks
   const renderAnnotatedDraft = () => {
@@ -134,6 +148,112 @@ export default function AuditResultClient({ auditId, input, options, result, use
     );
   };
 
+  // Parse authentic rewrite and render [placeholders] as interactive inline inputs
+  const renderAuthenticRewrite = () => {
+    const text = result.rewrites.authentic;
+    const regex = /\[([^\]]+)\]/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let phIdx = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Text before placeholder
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={`t_${lastIndex}`} className="whitespace-pre-line">
+            {text.slice(lastIndex, match.index)}
+          </span>
+        );
+      }
+      const key = `ph_${phIdx}`;
+      const hint = match[1];
+      const filled = placeholderValues[key] ?? "";
+      parts.push(
+        <span
+          key={key}
+          className={`inline-flex items-center mx-0.5 rounded px-1.5 py-0.5 text-xs font-semibold border transition-all ${
+            filled
+              ? "bg-[#176B4D]/10 border-[#176B4D]/30 text-[#176B4D]"
+              : "bg-[#F59E0B]/12 border-[#F59E0B]/40 text-[#92400E]"
+          }`}
+        >
+          <input
+            type="text"
+            placeholder={hint}
+            value={filled}
+            onChange={(e) =>
+              setPlaceholderValues((prev) => ({ ...prev, [key]: e.target.value }))
+            }
+            className="bg-transparent outline-none placeholder-current/50 min-w-[60px] w-auto font-semibold"
+            style={{ width: `${Math.max(filled.length || hint.length, 8)}ch` }}
+            title={`Fill in: ${hint}`}
+          />
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+      phIdx++;
+    }
+
+    // Trailing text
+    if (lastIndex < text.length) {
+      parts.push(
+        <span key="t_end" className="whitespace-pre-line">
+          {text.slice(lastIndex)}
+        </span>
+      );
+    }
+
+    const totalPlaceholders = phIdx;
+    const filledCount = Object.values(placeholderValues).filter((v) => v.trim()).length;
+    const allFilled = totalPlaceholders > 0 && filledCount >= totalPlaceholders;
+
+    // Build the final copyable text with filled values
+    const getFinalText = () => {
+      let idx2 = 0;
+      return text.replace(/\[([^\]]+)\]/g, () => {
+        const val = placeholderValues[`ph_${idx2}`]?.trim();
+        idx2++;
+        return val || "[???]";
+      });
+    };
+
+    return (
+      <div suppressHydrationWarning>
+        <div className="font-sans text-sm leading-relaxed text-[#171A18] bg-white p-2 min-h-[220px]">
+          {parts}
+        </div>
+        {totalPlaceholders > 0 && (
+          <div className="mt-3 flex items-center justify-between border-t border-[#171A18]/8 pt-3">
+            <span className="text-[10px] text-[#171A18]/45 font-mono">
+              {filledCount}/{totalPlaceholders} placeholders filled
+            </span>
+            <button
+              type="button"
+              disabled={!allFilled}
+              onClick={() => {
+                navigator.clipboard.writeText(getFinalText());
+                setCopiedFinal(true);
+                setTimeout(() => setCopiedFinal(false), 2000);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                allFilled
+                  ? "bg-[#176B4D] text-white hover:bg-[#0F4D36] cursor-pointer shadow-sm"
+                  : "bg-[#171A18]/10 text-[#171A18]/35 cursor-not-allowed"
+              }`}
+            >
+              {copiedFinal ? (
+                <><Check className="h-3.5 w-3.5" /> Copied!</>
+              ) : (
+                <><Copy className="h-3.5 w-3.5" /> Copy Final Post</>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handlePricingRedirect = (url: string) => {
     if (!/^https:\/\/buy\.stripe\.com\/.+/.test(url) || /\/test_[123](?:\?|$)/.test(url)) {
       setCheckoutError("Checkout is not configured yet. Add the real Stripe Payment Link URL to NEXT_PUBLIC_STRIPE_LINK_QUICK_FIX first.");
@@ -190,8 +310,11 @@ export default function AuditResultClient({ auditId, input, options, result, use
               {trustScore}
               <span className="text-sm font-normal text-current/60">/100</span>
             </div>
-            <span className="text-[10px] text-[#171A18]/45 mt-1 block">
-              Confidence level: <strong>{result.confidence}</strong>
+            <span className={`text-[11px] font-bold mt-1 block ${scoreTier.color}`}>
+              {scoreTier.label}
+            </span>
+            <span className="text-[10px] text-[#171A18]/40 block">
+              Confidence: <strong>{result.confidence}</strong>
             </span>
           </div>
 
@@ -323,8 +446,11 @@ export default function AuditResultClient({ auditId, input, options, result, use
                 )}
               </div>
 
-              <div className="font-sans text-sm leading-relaxed whitespace-pre-line text-[#171A18] bg-white p-2 min-h-[220px]">
-                {rewriteTab === "authentic" ? result.rewrites.authentic : result.rewrites.conservative}
+              <div className="font-sans text-sm leading-relaxed text-[#171A18]">
+                {rewriteTab === "authentic"
+                  ? renderAuthenticRewrite()
+                  : <div className="whitespace-pre-line bg-white p-2 min-h-[220px]">{result.rewrites.conservative}</div>
+                }
               </div>
             </div>
           </div>
