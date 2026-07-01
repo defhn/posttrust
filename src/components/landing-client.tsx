@@ -24,6 +24,15 @@ interface LandingClientProps {
   user: User | null;
 }
 
+const DEFAULT_POST_GOAL = "Build a credibility library";
+const LEGACY_GOALS: Record<string, string> = {
+  Leads: "Attract potential clients",
+  Awareness: DEFAULT_POST_GOAL,
+  Hiring: "Show how I work",
+  Launch: "Support a product launch",
+  Conversation: "Share an industry opinion",
+};
+
 const FAQ_ITEMS = [
   {
     question: "Is this an AI detector?",
@@ -60,12 +69,12 @@ const AUDIT_DIMENSIONS = [
   {
     label: "Fake-Expert Signals",
     color: "risk" as const,
-    desc: "Preachy lectures that command readers what to do\u2014alienating high-value buyers who already know.",
+    desc: "Preachy rules, borrowed authority, humblebrags, and forced business lessons that have not been earned by the evidence.",
   },
   {
     label: "LinkedIn Clich\u00e9s",
     color: "risk" as const,
-    desc: "Tired engagement hooks, forced line breaks, and formatting templates that scream AI plugin.",
+    desc: "Tired engagement hooks, forced line breaks, and low-value questions designed mainly to collect easy comments.",
   },
   {
     label: "Missing Experience",
@@ -75,7 +84,7 @@ const AUDIT_DIMENSIONS = [
   {
     label: "Missing Evidence",
     color: "warning" as const,
-    desc: "Statements without numbers, timelines, or specific variables that anchor claims in reality.",
+    desc: "Statements, percentages, and named authorities without sources, timelines, numbers, or concrete context.",
   },
   {
     label: "Perfect Flow",
@@ -99,11 +108,11 @@ void auditSteps;
 const DISPLAY_FAQ_ITEMS = [
   {
     question: "Is this an AI detector?",
-    answer: "No. PostTrust evaluates writing quality and trust patterns, not author origin. A human can write empty, cliche-heavy copy, and an AI can help produce specific, evidence-backed text. We highlight patterns that reduce professional credibility.",
+    answer: "No. PostTrust evaluates writing quality and professional trust, not authorship. It shows where vague claims, unsupported authority, recycled formulas, and missing evidence weaken a draft.",
   },
   {
     question: "Will you invent personal stories for me?",
-    answer: "No. We do not fabricate stories or case studies. Authentic rewrites use bracketed placeholders like '[insert your team size]' or '[insert metric here]' where specific data points would strengthen your post.",
+    answer: "No. PostTrust never invents customer stories, results, credentials, or data. It uses placeholders for missing facts, then lets you answer the evidence questions once to rebuild a final Authentic Rewrite.",
   },
   {
     question: "Do I need to connect my LinkedIn account?",
@@ -144,7 +153,7 @@ function LandingContent({ user }: LandingClientProps) {
   const [contentType, setContentType] = useState<"post" | "article">("post");
   const [showOptions, setShowOptions] = useState(false);
   const [audience, setAudience] = useState("");
-  const [goal, setGoal] = useState("Leads");
+  const [goal, setGoal] = useState(DEFAULT_POST_GOAL);
   const [tone, setTone] = useState(true);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditStep, setAuditStep] = useState(0);
@@ -161,7 +170,7 @@ function LandingContent({ user }: LandingClientProps) {
     if (cachedContent) setContent(cachedContent);
     if (cachedType === "post" || cachedType === "article") setContentType(cachedType);
     if (cachedAudience) setAudience(cachedAudience);
-    if (cachedGoal) setGoal(cachedGoal);
+    if (cachedGoal) setGoal(LEGACY_GOALS[cachedGoal] || cachedGoal);
 
     const hasSuccess = searchParams.get("login") === "success";
     if (hasSuccess && user && cachedContent && cachedContent.length >= 80) {
@@ -169,7 +178,7 @@ function LandingContent({ user }: LandingClientProps) {
       executeAudit(cachedContent, {
         type: (cachedType as "post" | "article") || "post",
         audience: cachedAudience || "",
-        goal: cachedGoal || "Leads",
+        goal: (cachedGoal && (LEGACY_GOALS[cachedGoal] || cachedGoal)) || DEFAULT_POST_GOAL,
         tone,
       });
     }
@@ -267,13 +276,16 @@ function LandingContent({ user }: LandingClientProps) {
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#171A18] tracking-tight leading-[1.1] max-w-3xl mx-auto mb-6">
-          Make your LinkedIn post sound{" "}
-          <span className="text-[#176B4D]">experienced</span>,{" "}
-          not AI-generated.
+          Write credible LinkedIn posts without sounding like a{" "}
+          <span className="text-[#176B4D]">fake thought leader</span>.
         </h1>
 
         <p className="text-lg md:text-xl text-[#171A18]/60 max-w-2xl mx-auto leading-relaxed mb-10">
-          Paste a draft. PostTrust finds vague claims, recycled cliches, fake-expert signals, and missing evidence, then shows you how to make it sound like <em>you</em>.
+          PostTrust finds vague claims, recycled LinkedIn formulas, unsupported authority, and missing evidence, then helps you rewrite around real work and real experience.
+        </p>
+
+        <p className="mx-auto mb-8 max-w-2xl text-sm font-medium text-[#171A18]/70">
+          Built for B2B founders, consultants, and professional-service experts who need to stay visible without becoming LinkedIn influencers.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-[#171A18]/50">
@@ -396,11 +408,12 @@ function LandingContent({ user }: LandingClientProps) {
                       onChange={(e) => { setGoal(e.target.value); localStorage.setItem("posttrust_draft_goal", e.target.value); }}
                       className="w-full px-3 py-2 bg-[#F7F8F6] border border-[#171A18]/10 rounded-lg text-sm text-[#171A18] focus:outline-none focus:ring-2 focus:ring-[#176B4D]/30"
                     >
-                      <option value="Leads">Generate Client Leads / Consults</option>
-                      <option value="Awareness">Increase Awareness / Share Opinion</option>
-                      <option value="Hiring">Hiring / Team Growth</option>
-                      <option value="Launch">Product / Feature Launch</option>
-                      <option value="Conversation">Start an Industry Conversation</option>
+                      <option value="Attract potential clients">Attract Potential Clients</option>
+                      <option value="Build a credibility library">Build a Credibility Library</option>
+                      <option value="Show how I work">Show How I Work</option>
+                      <option value="Share a real lesson from work">Share a Real Lesson from Work</option>
+                      <option value="Support a product launch">Support a Product Launch</option>
+                      <option value="Share an industry opinion">Share an Industry Opinion</option>
                     </select>
                   </div>
                   <label className="md:col-span-2 flex items-center gap-2.5 cursor-pointer">
@@ -457,7 +470,7 @@ function LandingContent({ user }: LandingClientProps) {
             <p className="text-[11px] font-bold uppercase tracking-widest text-[#176B4D]">Detection Engine</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#171A18] tracking-tight">What we audit for</h2>
             <p className="text-base text-[#171A18]/55 max-w-xl mx-auto">
-              Six signals that can weaken reader trust on LinkedIn.
+              Signals that make useful experience sound generic, performative, or unsupported.
             </p>
           </div>
 
@@ -640,7 +653,7 @@ function LandingContent({ user }: LandingClientProps) {
       <section className="border-t border-[#171A18]/8 bg-white py-20">
         <div className="max-w-3xl mx-auto px-6 md:px-10 text-center space-y-6">
           <h2 className="text-3xl md:text-4xl font-extrabold text-[#171A18] tracking-tight leading-tight">
-            Your next post should sound like you,<br className="hidden sm:block" /> not a prompt template.
+            Your next post should show how you think,<br className="hidden sm:block" /> not perform thought leadership.
           </h2>
           <p className="text-base text-[#171A18]/55">Free to try. No credit card. Usually under a minute.</p>
           <a

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   Shield, Check, Copy, HelpCircle, 
-  ArrowRight, CornerDownRight, FileText
+  ArrowRight, CornerDownRight, FileText, Loader2, WandSparkles
 } from "lucide-react";
 
 interface AuditResultProps {
@@ -26,6 +26,7 @@ interface AuditResultProps {
     annotations: Array<{ originalTextSnippet: string; problemCategory: string; riskExplanation: string; fixSuggestion: string; actionType: "delete" | "replace" | "add_evidence" | "rewrite" }>;
     rewrites: { conservative: string; authentic: string };
     missingContextDetails: string[];
+    rebuild?: { generatedAt: string; answerCount: number };
   };
   user: {
     id: string;
@@ -39,6 +40,11 @@ export default function AuditResultClient({ auditId, input, options, result, use
   const [rewriteTab, setRewriteTab] = useState<"conservative" | "authentic">("authentic");
   const [copiedTab, setCopiedTab] = useState<"conservative" | "authentic" | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [authenticRewrite, setAuthenticRewrite] = useState(result.rewrites.authentic);
+  const [evidenceAnswers, setEvidenceAnswers] = useState<Record<number, string>>({});
+  const [isRebuilding, setIsRebuilding] = useState(false);
+  const [rebuildError, setRebuildError] = useState<string | null>(null);
+  const [rebuildComplete, setRebuildComplete] = useState(Boolean(result.rebuild));
   const auditLabel = options.type === "article" ? "Article" : "Post";
 
   // Copy text to clipboard
@@ -110,9 +116,10 @@ export default function AuditResultClient({ auditId, input, options, result, use
       const isActive = activeAnnIndex === occ.idx;
 
       // Select appropriate theme coloring
-      const isCliché = occ.ann.problemCategory.toLowerCase().includes("cliché") || occ.ann.problemCategory.toLowerCase().includes("buzzword");
-      const highlightBg = isCliché ? "bg-[#B5473C]/10 hover:bg-[#B5473C]/15" : "bg-[#B7791F]/10 hover:bg-[#B7791F]/15";
-      const highlightBorder = isCliché ? "border-[#B5473C] text-[#B5473C]" : "border-[#B7791F] text-[#B7791F]";
+      const normalizedCategory = occ.ann.problemCategory.toLowerCase();
+      const isCliche = normalizedCategory.includes("clich") || normalizedCategory.includes("buzzword");
+      const highlightBg = isCliche ? "bg-[#B5473C]/10 hover:bg-[#B5473C]/15" : "bg-[#B7791F]/10 hover:bg-[#B7791F]/15";
+      const highlightBorder = isCliche ? "border-[#B5473C] text-[#B5473C]" : "border-[#B7791F] text-[#B7791F]";
 
       parts.push(
         <button
@@ -151,7 +158,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
 
   // Parse authentic rewrite and render [placeholders] as interactive inline inputs
   const renderAuthenticRewrite = () => {
-    const text = result.rewrites.authentic;
+    const text = authenticRewrite;
     const regex = /\[([^\]]+)\]/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -262,6 +269,34 @@ export default function AuditResultClient({ auditId, input, options, result, use
     }
     const separator = url.includes("?") ? "&" : "?";
     window.location.href = `${url}${separator}client_reference_id=${user.id}`;
+  };
+
+  const handleRebuild = async () => {
+    const answers = result.missingContextDetails
+      .slice(0, 5)
+      .map((question, index) => ({ question, answer: evidenceAnswers[index]?.trim() || "" }))
+      .filter(({ answer }) => answer.length > 0);
+
+    if (answers.length === 0) return;
+    setIsRebuilding(true);
+    setRebuildError(null);
+    try {
+      const response = await fetch(`/api/audits/${auditId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not rebuild this rewrite.");
+      setAuthenticRewrite(data.authentic);
+      setPlaceholderValues({});
+      setRewriteTab("authentic");
+      setRebuildComplete(true);
+    } catch (error) {
+      setRebuildError(error instanceof Error ? error.message : "Could not rebuild this rewrite.");
+    } finally {
+      setIsRebuilding(false);
+    }
   };
 
   return (
@@ -403,7 +438,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
                 
                 <button
                   onClick={() => handleCopy(
-                    rewriteTab === "authentic" ? result.rewrites.authentic : result.rewrites.conservative, 
+                    rewriteTab === "authentic" ? authenticRewrite : result.rewrites.conservative,
                     rewriteTab
                   )}
                   className="inline-flex items-center gap-1 text-xs text-[#176B4D] font-bold hover:underline cursor-pointer"
@@ -447,21 +482,51 @@ export default function AuditResultClient({ auditId, input, options, result, use
 
         {/* Row 3: Gaps & Clarifying Questions */}
         {result.missingContextDetails.length > 0 && (
-          <section className="bg-[#176B4D]/5 border border-[#176B4D]/15 rounded-lg p-6 space-y-4 shadow-2xs font-sans">
+          <section className="border border-[#176B4D]/20 bg-[#176B4D]/5 p-6 font-sans shadow-2xs">
             <h3 className="text-sm font-bold text-[#176B4D] flex items-center gap-1.5">
               <HelpCircle className="h-4 w-4 text-[#176B4D]" />
-              Clarifying details needed for maximum trust
+              Turn your evidence into the final rewrite
             </h3>
-            <p className="text-xs text-[#171A18]/80 leading-normal font-sans">
-              To fully unlock the &ldquo;Authentic Rewrite&rdquo;, fill in the bracketed placeholders by answering these specific details:
-            </p>
-            <ul className="text-xs space-y-2.5 text-[#171A18] pl-5 list-disc leading-relaxed">
-              {result.missingContextDetails.map((q, idx) => (
-                <li key={idx} className="font-medium">
-                  {q}
-                </li>
-              ))}
-            </ul>
+            {rebuildComplete ? (
+              <div className="mt-4 flex items-start gap-3 border border-[#176B4D]/20 bg-white p-4" role="status">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#176B4D]" />
+                <div>
+                  <p className="text-sm font-semibold text-[#171A18]">Final rewrite created</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#171A18]/60">Your answers were used once to rebuild the Authentic Rewrite. The answers themselves were not saved.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="mt-2 text-xs leading-relaxed text-[#171A18]/70">
+                  Answer the questions you can. PostTrust will use only those facts to replace placeholders and rebuild the Authentic Rewrite. One rebuild is included with this audit.
+                </p>
+                <div className="mt-5 space-y-4">
+                  {result.missingContextDetails.slice(0, 5).map((question, index) => (
+                    <label key={question} className="block">
+                      <span className="block text-xs font-semibold leading-relaxed text-[#171A18]">{question}</span>
+                      <textarea
+                        value={evidenceAnswers[index] || ""}
+                        onChange={(event) => setEvidenceAnswers((current) => ({ ...current, [index]: event.target.value }))}
+                        maxLength={1000}
+                        rows={3}
+                        placeholder="Add the real detail, number, decision, or result..."
+                        className="mt-2 w-full resize-y border border-[#171A18]/15 bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:border-[#176B4D] focus:ring-2 focus:ring-[#176B4D]/15"
+                      />
+                    </label>
+                  ))}
+                </div>
+                {rebuildError && <p className="mt-4 text-xs font-medium text-[#B5473C]" role="alert">{rebuildError}</p>}
+                <button
+                  type="button"
+                  onClick={handleRebuild}
+                  disabled={isRebuilding || !Object.values(evidenceAnswers).some((answer) => answer.trim().length > 0)}
+                  className="mt-5 inline-flex h-10 items-center gap-2 bg-[#176B4D] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0F4D36] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isRebuilding ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
+                  {isRebuilding ? "Rebuilding with your evidence..." : "Rebuild with my answers"}
+                </button>
+              </>
+            )}
           </section>
         )}
 
