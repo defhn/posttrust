@@ -175,9 +175,9 @@ export default function DemoAudit() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs font-sans text-[#B5473C] bg-[#B5473C]/10 rounded px-2.5 py-1 w-fit font-medium">
+              <div className="flex items-center gap-2 text-xs font-sans text-[#B7791F] bg-[#B7791F]/10 rounded px-2.5 py-1 w-fit font-medium">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                Trust Score: 22/100 (Low Trust)
+                Credibility Score: 34/100 (Needs Specifics)
               </div>
               <div className="font-sans leading-relaxed">
                 {renderAnnotatedText()}

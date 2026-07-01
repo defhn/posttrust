@@ -80,7 +80,7 @@ Return only this JSON structure:
   "missingContextDetails": ["Specific evidence question"]
 }
 
-overallScore is slop risk from 0 (specific and credible) to 100 (generic and unsupported). The UI displays 100 minus overallScore as Trust Score. The metrics array must contain exactly one item for each of the seven keys above, in that order. topProblems has at most three items.
+overallScore and each metric score are risk scores from 0 (specific and credible) to 100 (generic and unsupported). The app derives a user-facing Credibility Score from the metric breakdown, so keep metric scores grounded and internally consistent. The metrics array must contain exactly one item for each of the seven keys above, in that order. topProblems has at most three items.
 `;
 
   const userPrompt = `

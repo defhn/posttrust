@@ -1,3 +1,5 @@
+import { calculateCredibilityScore, type RiskMetric } from "./credibility-score.ts";
+
 export interface StoredAuditSummaryInput {
   input: string;
   options: string;
@@ -15,9 +17,22 @@ export function createAuditSummary(record: StoredAuditSummaryInput) {
   } catch {}
 
   try {
-    const result = JSON.parse(record.result) as { overallScore?: unknown; verdict?: unknown };
-    // trustScore = 100 - overallScore (higher = better)
-    if (typeof result.overallScore === "number") score = 100 - result.overallScore;
+    const result = JSON.parse(record.result) as { overallScore?: unknown; verdict?: unknown; metrics?: unknown };
+    if (typeof result.overallScore === "number") {
+      const metrics = Array.isArray(result.metrics)
+        ? result.metrics.filter((metric): metric is RiskMetric => {
+            return (
+              typeof metric === "object" &&
+              metric !== null &&
+              "category" in metric &&
+              "score" in metric &&
+              typeof metric.category === "string" &&
+              typeof metric.score === "number"
+            );
+          })
+        : [];
+      score = calculateCredibilityScore({ overallScore: result.overallScore, metrics }).score;
+    }
     if (typeof result.verdict === "string" && result.verdict.trim()) verdict = result.verdict;
   } catch {}
 

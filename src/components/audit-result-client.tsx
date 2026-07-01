@@ -7,6 +7,8 @@ import {
   ArrowRight, CornerDownRight, FileText, Loader2, WandSparkles
 } from "lucide-react";
 
+import { calculateCredibilityScore } from "@/lib/credibility-score";
+
 interface AuditResultProps {
   auditId: string;
   input: string;
@@ -56,29 +58,21 @@ export default function AuditResultClient({ auditId, input, options, result, use
     setTimeout(() => setCopiedTab(null), 2000);
   };
 
-  // trustScore = 100 - overallScore (higher = better, more human/trustworthy)
-  const trustScore = 100 - result.overallScore;
+  const credibility = calculateCredibilityScore({
+    overallScore: result.overallScore,
+    metrics: result.metrics,
+  });
 
   // Placeholder fill state for authentic rewrite: key = "ph_N", value = user's text
   const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({});
   const [copiedFinal, setCopiedFinal] = useState(false);
 
-  // Score color: <60 red, 60-79 yellow, 80-89 light green, 90+ deep green
-  const getScoreColorClass = (ts: number) => {
-    if (ts >= 90) return "text-[#176B4D] bg-[#176B4D]/15 border-[#176B4D]/35";
-    if (ts >= 80) return "text-[#2D8B5A] bg-[#2D8B5A]/10 border-[#2D8B5A]/25";
-    if (ts >= 60) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
+  const getScoreColorClass = (score: number) => {
+    if (score >= 85) return "text-[#176B4D] bg-[#176B4D]/15 border-[#176B4D]/35";
+    if (score >= 70) return "text-[#2D8B5A] bg-[#2D8B5A]/10 border-[#2D8B5A]/25";
+    if (score >= 30) return "text-[#B7791F] bg-[#B7791F]/10 border-[#B7791F]/25";
     return "text-[#B5473C] bg-[#B5473C]/10 border-[#B5473C]/25";
   };
-
-  const getScoreTier = (ts: number) => {
-    if (ts >= 90) return { label: "Excellent", color: "text-[#176B4D]" };
-    if (ts >= 80) return { label: "Good", color: "text-[#2D8B5A]" };
-    if (ts >= 60) return { label: "Average", color: "text-[#B7791F]" };
-    return { label: "Needs Work", color: "text-[#B5473C]" };
-  };
-
-  const scoreTier = getScoreTier(trustScore);
 
   // Helper to parse original draft and render it with interactive highlighted blocks
   const renderAnnotatedDraft = () => {
@@ -328,18 +322,23 @@ export default function AuditResultClient({ auditId, input, options, result, use
           {/* Circular/Large Score Card */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#171A18]/50 font-sans">
-              Trust Score
+              Credibility Score
             </span>
-            <div className={`flex items-baseline gap-1 font-mono px-4 py-2 border rounded-md text-3xl font-extrabold ${getScoreColorClass(trustScore)}`}>
-              {trustScore}
+            <div className={`flex items-baseline gap-1 font-mono px-4 py-2 border rounded-md text-3xl font-extrabold ${getScoreColorClass(credibility.score)}`}>
+              {credibility.score}
               <span className="text-sm font-normal text-current/60">/100</span>
             </div>
-            <span className={`text-[11px] font-bold mt-1 block ${scoreTier.color}`}>
-              {scoreTier.label}
+            <span className={`text-[11px] font-bold mt-1 block ${credibility.tier.color}`}>
+              {credibility.tier.label}
             </span>
             <span className="text-[10px] text-[#171A18]/40 block">
               Confidence: <strong>{result.confidence}</strong>
             </span>
+            {credibility.potentialScore > credibility.score && (
+              <span className="text-[10px] text-[#176B4D] block">
+                Potential after fixes: <strong>{credibility.potentialScore}/100</strong>
+              </span>
+            )}
           </div>
 
           {/* Verdict Text */}
@@ -558,7 +557,48 @@ export default function AuditResultClient({ auditId, input, options, result, use
           </section>
         )}
 
-        {/* Row 4: Metrics Breakdown */}
+        {/* Row 4: Score Breakdown */}
+        <section className="bg-white border border-[#171A18]/10 rounded-lg p-6 space-y-5 shadow-2xs font-sans">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-[#171A18] font-sans">
+                Score Breakdown
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-[#171A18]/55">
+                This is an additive credibility score: 20 base draft points plus six trust-building factors.
+              </p>
+            </div>
+            <div className="text-xs font-bold text-[#176B4D]">
+              Base draft: {credibility.basePoints} pts
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {credibility.factors.map((factor) => {
+              const percent = Math.round((factor.earned / factor.max) * 100);
+              return (
+                <div key={factor.label} className="rounded-lg border border-[#171A18]/10 bg-[#F7F8F6]/35 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-[#171A18]">{factor.label}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[#171A18]/55">{factor.description}</p>
+                    </div>
+                    <span className="shrink-0 font-mono text-xs font-bold text-[#171A18]">
+                      {factor.earned}/{factor.max}
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#171A18]/8">
+                    <div
+                      className="h-full rounded-full bg-[#176B4D]"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Row 5: Metrics Breakdown */}
         <section className="bg-white border border-[#171A18]/10 rounded-lg p-6 space-y-6 shadow-2xs font-sans">
           <h3 className="text-sm font-bold text-[#171A18] font-sans">
             Detailed Friction Metrics
