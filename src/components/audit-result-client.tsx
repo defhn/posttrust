@@ -42,10 +42,12 @@ export default function AuditResultClient({ auditId, input, options, result, use
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [authenticRewrite, setAuthenticRewrite] = useState(result.rewrites.authentic);
   const [evidenceAnswers, setEvidenceAnswers] = useState<Record<number, string>>({});
+  const [showEvidenceForm, setShowEvidenceForm] = useState(false);
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
   const [rebuildComplete, setRebuildComplete] = useState(Boolean(result.rebuild));
   const auditLabel = options.type === "article" ? "Article" : "Post";
+  const evidenceQuestions = result.missingContextDetails.slice(0, 3);
 
   // Copy text to clipboard
   const handleCopy = (text: string, type: "conservative" | "authentic") => {
@@ -272,8 +274,7 @@ export default function AuditResultClient({ auditId, input, options, result, use
   };
 
   const handleRebuild = async () => {
-    const answers = result.missingContextDetails
-      .slice(0, 5)
+    const answers = evidenceQuestions
       .map((question, index) => ({ question, answer: evidenceAnswers[index]?.trim() || "" }))
       .filter(({ answer }) => answer.length > 0);
 
@@ -480,28 +481,47 @@ export default function AuditResultClient({ auditId, input, options, result, use
 
         </section>
 
-        {/* Row 3: Gaps & Clarifying Questions */}
-        {result.missingContextDetails.length > 0 && (
-          <section className="border border-[#176B4D]/20 bg-[#176B4D]/5 p-6 font-sans shadow-2xs">
-            <h3 className="text-sm font-bold text-[#176B4D] flex items-center gap-1.5">
-              <HelpCircle className="h-4 w-4 text-[#176B4D]" />
-              Turn your evidence into the final rewrite
-            </h3>
+        {/* Row 3: Optional Evidence Refinement */}
+        {evidenceQuestions.length > 0 && (
+          <section className="rounded-lg border border-[#176B4D]/20 bg-[#176B4D]/5 p-5 font-sans shadow-2xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#176B4D] flex items-center gap-1.5">
+                    <HelpCircle className="h-4 w-4 text-[#176B4D]" />
+                    Missing proof
+                  </h3>
+                  <span className="rounded border border-[#176B4D]/20 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#176B4D]/75">
+                    Optional
+                  </span>
+                </div>
+                <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#171A18]/70">
+                  The rewrite above is ready to copy. Add 1-3 real details only if you want a sharper version with more proof.
+                </p>
+              </div>
+              {!rebuildComplete && (
+                <button
+                  type="button"
+                  onClick={() => setShowEvidenceForm((current) => !current)}
+                  className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded bg-white px-3 text-xs font-bold text-[#176B4D] ring-1 ring-[#176B4D]/20 transition-colors hover:bg-[#176B4D]/8"
+                >
+                  <WandSparkles className="h-3.5 w-3.5" />
+                  {showEvidenceForm ? "Hide detail fields" : "Improve with real details"}
+                </button>
+              )}
+            </div>
             {rebuildComplete ? (
               <div className="mt-4 flex items-start gap-3 border border-[#176B4D]/20 bg-white p-4" role="status">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#176B4D]" />
                 <div>
-                  <p className="text-sm font-semibold text-[#171A18]">Final rewrite created</p>
-                  <p className="mt-1 text-xs leading-relaxed text-[#171A18]/60">Your answers were used once to rebuild the Authentic Rewrite. The answers themselves were not saved.</p>
+                  <p className="text-sm font-semibold text-[#171A18]">Sharper rewrite created</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#171A18]/60">Your details were used once to refresh the Authentic Rewrite. The answers themselves were not saved.</p>
                 </div>
               </div>
-            ) : (
+            ) : showEvidenceForm ? (
               <>
-                <p className="mt-2 text-xs leading-relaxed text-[#171A18]/70">
-                  Answer the questions you can. PostTrust will use only those facts to replace placeholders and rebuild the Authentic Rewrite. One rebuild is included with this audit.
-                </p>
                 <div className="mt-5 space-y-4">
-                  {result.missingContextDetails.slice(0, 5).map((question, index) => (
+                  {evidenceQuestions.map((question, index) => (
                     <label key={question} className="block">
                       <span className="block text-xs font-semibold leading-relaxed text-[#171A18]">{question}</span>
                       <textarea
@@ -520,12 +540,20 @@ export default function AuditResultClient({ auditId, input, options, result, use
                   type="button"
                   onClick={handleRebuild}
                   disabled={isRebuilding || !Object.values(evidenceAnswers).some((answer) => answer.trim().length > 0)}
-                  className="mt-5 inline-flex h-10 items-center gap-2 bg-[#176B4D] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0F4D36] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-5 inline-flex h-10 items-center gap-2 rounded bg-[#176B4D] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0F4D36] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isRebuilding ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
-                  {isRebuilding ? "Rebuilding with your evidence..." : "Rebuild with my answers"}
+                  {isRebuilding ? "Improving with your details..." : "Improve rewrite"}
                 </button>
               </>
+            ) : (
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {evidenceQuestions.map((question) => (
+                  <div key={question} className="rounded border border-[#176B4D]/15 bg-white p-3 text-xs font-medium leading-relaxed text-[#171A18]/75">
+                    {question}
+                  </div>
+                ))}
+              </div>
             )}
           </section>
         )}
